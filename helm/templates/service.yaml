@@ -1,0 +1,72 @@
+---
+# Vote Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: voting-service
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: {{ .Values.vote.name }}
+spec:
+  type: {{ .Values.vote.service.type }}
+  ports:
+  - port: {{ .Values.vote.service.port }}
+    targetPort: {{ .Values.vote.service.targetPort }}
+    protocol: TCP
+    name: http
+  selector:
+    app: {{ .Values.vote.name }}
+---
+# Result Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: result-service
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: {{ .Values.result.name }}
+spec:
+  type: {{ .Values.result.service.type }}
+  ports:
+  - port: {{ .Values.result.service.port }}
+    targetPort: {{ .Values.result.service.targetPort }}
+    protocol: TCP
+    name: http
+  selector:
+    app: {{ .Values.result.name }}
+---
+# Redis Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.redis.name }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: {{ .Values.redis.name }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: {{ .Values.redis.service.port }}
+    targetPort: 6379
+    protocol: TCP
+    name: redis
+  selector:
+    app: {{ .Values.redis.name }}
+---
+# DB Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.db.name }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: {{ .Values.db.name }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: {{ .Values.db.service.port }}
+    targetPort: 5432
+    protocol: TCP
+    name: postgresql
+  selector:
+    app: {{ .Values.db.name }}

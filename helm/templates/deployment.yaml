@@ -1,0 +1,163 @@
+---
+# Vote Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.vote.name }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: {{ .Values.vote.name }}
+spec:
+  replicas: {{ .Values.vote.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.vote.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.vote.name }}
+    spec:
+      containers:
+      - name: {{ .Values.vote.name }}
+        image: {{ .Values.vote.image.repository }}:{{ .Values.vote.image.tag }}
+        imagePullPolicy: {{ .Values.vote.image.pullPolicy }}
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: {{ .Values.vote.resources.limits.cpu }}
+            memory: {{ .Values.vote.resources.limits.memory }}
+          requests:
+            cpu: {{ .Values.vote.resources.requests.cpu }}
+            memory: {{ .Values.vote.resources.requests.memory }}
+---
+# Result Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.result.name }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: {{ .Values.result.name }}
+spec:
+  replicas: {{ .Values.result.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.result.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.result.name }}
+    spec:
+      containers:
+      - name: {{ .Values.result.name }}
+        image: {{ .Values.result.image.repository }}:{{ .Values.result.image.tag }}
+        imagePullPolicy: {{ .Values.result.image.pullPolicy }}
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: {{ .Values.result.resources.limits.cpu }}
+            memory: {{ .Values.result.resources.limits.memory }}
+          requests:
+            cpu: {{ .Values.result.resources.requests.cpu }}
+            memory: {{ .Values.result.resources.requests.memory }}
+---
+# Worker Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.worker.name }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: {{ .Values.worker.name }}
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.worker.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.worker.name }}
+    spec:
+      containers:
+      - name: {{ .Values.worker.name }}
+        image: {{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag }}
+        imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
+        resources:
+          limits:
+            cpu: {{ .Values.worker.resources.limits.cpu }}
+            memory: {{ .Values.worker.resources.limits.memory }}
+          requests:
+            cpu: {{ .Values.worker.resources.requests.cpu }}
+            memory: {{ .Values.worker.resources.requests.memory }}
+---
+# Redis Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.redis.name }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: {{ .Values.redis.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.redis.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.redis.name }}
+    spec:
+      containers:
+      - name: {{ .Values.redis.name }}
+        image: {{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}
+        imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+        ports:
+        - containerPort: 6379
+        resources:
+          limits:
+            cpu: {{ .Values.redis.resources.limits.cpu }}
+            memory: {{ .Values.redis.resources.limits.memory }}
+          requests:
+            cpu: {{ .Values.redis.resources.requests.cpu }}
+            memory: {{ .Values.redis.resources.requests.memory }}
+---
+# Postgres Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.db.name }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: {{ .Values.db.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.db.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.db.name }}
+    spec:
+      containers:
+      - name: {{ .Values.db.name }}
+        image: {{ .Values.db.image.repository }}:{{ .Values.db.image.tag }}
+        imagePullPolicy: {{ .Values.db.image.pullPolicy }}
+        env:
+        - name: POSTGRES_USER
+          value: {{ .Values.db.environment.POSTGRES_USER }}
+        - name: POSTGRES_PASSWORD
+          value: {{ .Values.db.environment.POSTGRES_PASSWORD }}
+        ports:
+        - containerPort: 5432
+        resources:
+          limits:
+            cpu: {{ .Values.db.resources.limits.cpu }}
+            memory: {{ .Values.db.resources.limits.memory }}
+          requests:
+            cpu: {{ .Values.db.resources.requests.cpu }}
+            memory: {{ .Values.db.resources.requests.memory }}

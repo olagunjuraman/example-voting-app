@@ -1,0 +1,119 @@
+name: CI/CD Pipeline for Voting App
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: bion-eks
+  ECR_REPOSITORY_PREFIX: ${{ secrets.AWS_ACCOUNT_ID }}
+  SCAN_REPORT_BUCKET: bion-scan-reports-${{ secrets.AWS_ACCOUNT_ID }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: arn:aws:iam::130575395405:role/talent_role
+        aws-region: ${{ env.AWS_REGION }}
+      
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      
+    - name: Build and push voting-app
+      uses: docker/build-push-action@v4
+      with:
+        context: ./vote
+        push: true
+        tags: ${{ steps.login-ecr.outputs.registry }}/voting-app:${{ github.sha }}
+        
+    - name: Build and push result-app
+      uses: docker/build-push-action@v4
+      with:
+        context: ./result
+        push: true
+        tags: ${{ steps.login-ecr.outputs.registry }}/result-app:${{ github.sha }}
+        
+    - name: Build and push worker
+      uses: docker/build-push-action@v4
+      with:
+        context: ./worker
+        push: true
+        tags: ${{ steps.login-ecr.outputs.registry }}/worker:${{ github.sha }}
+        
+    - name: Install Grype
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+        
+    - name: Scan voting-app image
+      run: |
+        grype ${{ steps.login-ecr.outputs.registry }}/voting-app:${{ github.sha }} -o json > voting-app-scan-report.json
+        aws s3 cp voting-app-scan-report.json s3://${{ env.SCAN_REPORT_BUCKET }}/${{ github.sha }}/voting-app-scan-report.json
+        
+    - name: Scan result-app image
+      run: |
+        grype ${{ steps.login-ecr.outputs.registry }}/result-app:${{ github.sha }} -o json > result-app-scan-report.json
+        aws s3 cp result-app-scan-report.json s3://${{ env.SCAN_REPORT_BUCKET }}/${{ github.sha }}/result-app-scan-report.json
+        
+    - name: Scan worker image
+      run: |
+        grype ${{ steps.login-ecr.outputs.registry }}/worker:${{ github.sha }} -o json > worker-scan-report.json
+        aws s3 cp worker-scan-report.json s3://${{ env.SCAN_REPORT_BUCKET }}/${{ github.sha }}/worker-scan-report.json
+        
+    - name: Install Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: '3.8.2'
+        
+    - name: Update kubeconfig
+      run: |
+        aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+        
+    - name: Deploy voting app to Kubernetes using Helm
+      run: |
+        # Update the image tags in the Helm values file
+        sed -i "s|repository: voting-app|repository: ${{ steps.login-ecr.outputs.registry }}/voting-app|g" helm/values.yaml
+        sed -i "s|repository: result-app|repository: ${{ steps.login-ecr.outputs.registry }}/result-app|g" helm/values.yaml
+        sed -i "s|repository: worker|repository: ${{ steps.login-ecr.outputs.registry }}/worker|g" helm/values.yaml
+        sed -i "s|tag: latest|tag: ${{ github.sha }}|g" helm/values.yaml
+        
+        # Install/upgrade the Helm chart
+        helm upgrade --install voting-app ./helm --namespace voting-app --create-namespace
+        
+    - name: Install New Relic agent
+      run: |
+        # Add New Relic Helm repository
+        helm repo add newrelic https://helm-charts.newrelic.com
+        helm repo update
+        
+        # Install New Relic agent
+        helm upgrade --install newrelic-bundle newrelic/nri-bundle \
+          --namespace newrelic --create-namespace \
+          --set global.licenseKey=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
+          --set global.cluster=${{ env.EKS_CLUSTER_NAME }} \
+          --set newrelic-infrastructure.enabled=true \
+          --set kube-state-metrics.enabled=true \
+          --set prometheus.enabled=true
+          
+    - name: Get Application URL
+      run: |
+        echo "Waiting for Load Balancer to be ready..."
+        sleep 60
+        VOTE_APP_URL=$(kubectl get svc -n voting-app voting-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+        RESULT_APP_URL=$(kubectl get svc -n voting-app result-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+        
+        echo "Vote App URL: http://$VOTE_APP_URL:5000"
+        echo "Result App URL: http://$RESULT_APP_URL:5001"

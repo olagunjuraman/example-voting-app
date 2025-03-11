@@ -1,0 +1,96 @@
+# Global settings
+global:
+  namespace: voting-app
+
+# Vote application
+vote:
+  name: vote
+  replicas: 2
+  image:
+    repository: voting-app
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: LoadBalancer
+    port: 5000
+    targetPort: 80
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Result application
+result:
+  name: result
+  replicas: 2
+  image:
+    repository: result-app
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: LoadBalancer
+    port: 5001
+    targetPort: 80
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Worker component
+worker:
+  name: worker
+  replicas: 1
+  image:
+    repository: worker
+    tag: latest
+    pullPolicy: Always
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Redis for storing votes temporarily
+redis:
+  name: redis
+  image:
+    repository: redis
+    tag: alpine
+    pullPolicy: IfNotPresent
+  service:
+    port: 6379
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# PostgreSQL for storing vote results
+db:
+  name: db
+  image:
+    repository: postgres
+    tag: 15-alpine
+    pullPolicy: IfNotPresent
+  service:
+    port: 5432
+  environment:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
