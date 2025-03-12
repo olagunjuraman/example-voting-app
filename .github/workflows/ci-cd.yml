@@ -95,21 +95,6 @@ jobs:
         # Install/upgrade the Helm chart
         helm upgrade --install voting-app ./helm --namespace voting-app --create-namespace
         
-    - name: Install New Relic agent
-      run: |
-        # Add New Relic Helm repository
-        helm repo add newrelic https://helm-charts.newrelic.com
-        helm repo update
-        
-        # Install New Relic agent
-        helm upgrade --install newrelic-bundle newrelic/nri-bundle \
-          --namespace newrelic --create-namespace \
-          --set global.licenseKey=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
-          --set global.cluster=${{ env.EKS_CLUSTER_NAME }} \
-          --set newrelic-infrastructure.enabled=true \
-          --set kube-state-metrics.enabled=true \
-          --set prometheus.enabled=true
-          
     - name: Get Application URL
       run: |
         echo "Waiting for Load Balancer to be ready..."
