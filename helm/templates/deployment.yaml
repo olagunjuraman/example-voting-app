@@ -144,6 +144,8 @@ spec:
       labels:
         app: {{ .Values.db.name }}
     spec:
+      nodeSelector:
+        kubernetes.io/os: linux
       containers:
       - name: {{ .Values.db.name }}
         image: {{ .Values.db.image.repository }}:{{ .Values.db.image.tag }}
