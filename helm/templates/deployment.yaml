@@ -23,7 +23,7 @@ spec:
         imagePullPolicy: {{ .Values.vote.image.pullPolicy }}
         ports:
         - containerPort: 80
-        {{- include "app.httpProbes" . | indent 8 }}
+{{- include "app.httpProbes" . | nindent 8 }}
         resources:
           limits:
             cpu: {{ .Values.vote.resources.limits.cpu }}
@@ -56,7 +56,7 @@ spec:
         imagePullPolicy: {{ .Values.result.image.pullPolicy }}
         ports:
         - containerPort: 80
-        {{- include "app.httpProbes" . | indent 8 }}
+{{- include "app.httpProbes" . | nindent 8 }}
         resources:
           limits:
             cpu: {{ .Values.result.resources.limits.cpu }}
@@ -119,7 +119,7 @@ spec:
         imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
         ports:
         - containerPort: 6379
-        {{- include "redis.tcpProbes" . | indent 8 }}
+{{- include "redis.tcpProbes" . | nindent 8 }}
         resources:
           limits:
             cpu: {{ .Values.redis.resources.limits.cpu }}
