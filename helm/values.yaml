@@ -94,3 +94,6 @@ db:
     requests:
       cpu: 100m
       memory: 128Mi
+  storage:
+    className: gp2
+    size: 1Gi
